@@ -1,13 +1,140 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
-# Use a package of configuration called an orb.
-orbs:
-  # Declare a dependency on the welcome-orb
-  welcome: circleci/welcome-orb@0.4.1
-# Orchestrate or schedule a set of jobs
+
+executors:
+  nodejs:
+    docker:
+      - image: circleci/node:12.18.1
+    working_directory: ~/devops2020demo
+
+commands:
+  install_application_dependencies:
+    steps:
+      - restore_cache:
+          key: devops2020demo-{{ checksum "yarn.lock" }}
+      - run:
+          name: Install application dependencies
+          command: yarn install
+      - save_cache:
+          key: devops2020demo-{{ checksum "yarn.lock" }}
+          paths:
+            - ./node_modules
+          when: always
+
+  build:
+    steps:
+      - run:
+          name: Build
+          command: yarn run build
+
+  install_aws_cli:
+    steps:
+      - run:
+          name: install AWC CLI
+          command: |
+            sudo apt update && sudo apt install bash groff jq less python python-pip tree zip unzip
+            sudo pip install awscli
+
+  s3_copy:
+    steps:
+      - run:
+          name: Copy all files to s3 bucket
+          command: aws s3 cp build s3://devops2020demo --recursive --acl public-read
+
+  s3_remove:
+    steps:
+      - run:
+          name: Remove all old files from s3 bucket
+          command: aws s3 rm s3://devops2020demo --recursive --exclude "autodeploy/*"
+
+  s3_copy_autodeploy:
+    steps:
+      - run:
+          name: Copy all files to s3 bucket
+          command: |
+            aws s3 cp build s3://devops2020demo/autodeploy/$CIRCLE_BRANCH --recursive --acl public-read
+            echo "👉 Deployed branch is available at: http://devops2020demo.s3-website.eu-central-1.amazonaws.com/autodeploy/${CIRCLE_BRANCH}/index.html"
+
+  s3_remove_autodeploy:
+    steps:
+      - run:
+          name: Remove all old files from s3 bucket
+          command: aws s3 rm s3://devops2020demo/autodeploy/$CIRCLE_BRANCH --recursive
+
+jobs:
+  validate_code:
+    executor: nodejs
+    steps:
+      - checkout
+      - install_application_dependencies
+      - build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+
+  upload_to_bucket:
+    executor: nodejs
+    steps:
+      - checkout:
+          path: ~/devops2020demo
+      - attach_workspace:
+          at: .
+      - install_aws_cli
+      - s3_remove
+      - s3_copy
+
+  ensure_autodeploy_file_absence:
+    executor: nodejs
+    steps:
+      - checkout
+      - run:
+          name: Making sure that there is no .auto-deploy file
+          command: |
+            if [ -e .auto-deploy ]
+            then
+                echo ".auto-deploy file detected, delete it to be able to merge this branch"
+                exit 1
+            else
+                echo "there is no .auto-deploy file - you can merge this branch"
+            fi
+
+  autodeploy:
+    executor: nodejs
+    steps:
+      - checkout
+      - run:
+          name: Checking .auto-deploy file presence
+          command: |
+            if [ -e .auto-deploy ]
+            then
+                echo ".auto-deploy file detected, building and deploying"
+            else
+                echo "there is no .auto-deploy file, halting all the rest steps..."
+                circleci-agent step halt
+            fi
+      - install_aws_cli
+      - s3_remove_autodeploy
+      - s3_copy_autodeploy
+
 workflows:
-  # Name the workflow "welcome"
-  welcome:
-    # Run the welcome/run job in its own container
+  version: 2
+  devops2020demo_workflow:
     jobs:
-      - welcome/run
+      - validate_code:
+          context: DEMO
+      - ensure_autodeploy_file_absence:
+          context: DEMO
+      - autodeploy:
+          context: DEMO
+          requires:
+            - validate_code
+          filters:
+            branches:
+              ignore: master
+      - upload_to_bucket:
+          context: DEMO
+          requires:
+            - validate_code
+          filters:
+            branches:
+              only: master

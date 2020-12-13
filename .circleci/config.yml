@@ -102,6 +102,8 @@ jobs:
     executor: nodejs
     steps:
       - checkout
+      - install_aws_cli
+      - s3_remove_autodeploy
       - run:
           name: Checking .auto-deploy file presence
           command: |
@@ -112,8 +114,6 @@ jobs:
                 echo "there is no .auto-deploy file, halting all the rest steps..."
                 circleci-agent step halt
             fi
-      - install_aws_cli
-      - s3_remove_autodeploy
       - attach_workspace:
           at: .
       - s3_copy_autodeploy

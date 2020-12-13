@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/GGurbanov/devops2020demo.svg?style=svg?style=svg&circle-token=281e8e9ee69cb39869443e57dacf5ee2558be682)](https://github.com/GGurbanov/devops2020demo/tree/master)
+
 # 👋 Getting Started
 
 This repo demostrates how you can deploy a front-end application from any git branch. You might need such behavior to view/test your PR's before merging to main branch.

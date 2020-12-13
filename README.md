@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/GGurbanov/devops2020demo.svg?style=svg?style=svg&circle-token=281e8e9ee69cb39869443e57dacf5ee2558be682)](https://github.com/GGurbanov/devops2020demo/tree/master)
+[![CircleCI](https://circleci.com/gh/GGurbanov/devops2020demo.svg?style=shield&circle-token=281e8e9ee69cb39869443e57dacf5ee2558be682)](https://github.com/GGurbanov/devops2020demo/tree/master)
 
 # 👋 Getting Started
 

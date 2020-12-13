@@ -114,6 +114,8 @@ jobs:
             fi
       - install_aws_cli
       - s3_remove_autodeploy
+      - attach_workspace:
+          at: .
       - s3_copy_autodeploy
 
 workflows:

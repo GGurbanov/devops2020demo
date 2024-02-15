@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: devops2020demo
+  description: A demo application for devops days in Baku 2020
+  tags:
+    - ui
+    - deployment
+    - ci
+    - cd
+spec:
+  type: service
+  lifecycle: production
+  owner: fe-team
